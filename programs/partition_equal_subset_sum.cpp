@@ -33,3 +33,42 @@ public:
     }
 };
 
+
+// top down
+
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        int n,m, tot_sum = 0 ;
+        m = nums.size();
+        for (int i = 0 ; i < m ; i++){
+            tot_sum += nums[i];
+        }
+        if(tot_sum%2 != 0){
+            return false;
+        }
+        n = tot_sum / 2 ;
+        int target = n ;
+        vector<vector<int>> ans(2, vector<int>(n+1, 0));
+        for(int i = 0 ; i < 2 ; i++){
+            ans[i][0] = 1;
+        }
+        for (int j = 0 ; j < target+1 ; j++){
+            if (nums[0] == j && nums[0] < target){
+                ans[0][j] = 1;
+            }
+        }
+        for (int i = 1 ; i < m ; i++){
+            for (int j = 1 ; j < target+1 ; j++){
+                if (j - nums[i] >=0){
+                    ans[i%2][j] = max(ans[(i-1)%2][j],ans[(i-1)%2][j-nums[i]]);
+                }
+                else {
+                    ans[i%2][j] = ans[(i-1)%2][j];
+                }
+            }
+        }
+        return ans[(m-1)%2][target];
+    }
+};
+
