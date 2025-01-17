@@ -32,3 +32,41 @@ public:
         return ans[n-1][target+1000]*pow(2,count_0);
     }
 };
+
+
+// Space Optimized
+
+class Solution {
+public:
+    int findTargetSumWays(vector<int>& nums, int target) {
+        int count_0 = 0;
+        int sum = 0 ;
+        for (int i = 0 ; i < nums.size() ; i++) {
+            if (nums[i] < 0) sum += nums[i]*(-1);
+            else sum += nums[i];
+            if (nums[i] == 0) {
+                count_0++;
+                nums.erase(nums.begin()+i);
+                i--;
+                if(nums.empty()) break;
+            }
+        }
+        if (target > sum) return 0;
+        if (target < (-1)*sum) return 0;
+        int n = nums.size();
+        if (n == 0) return pow(2,count_0);
+        vector<vector<int>> ans(nums.size(),vector<int> (2*sum+1,0));
+
+        ans[0][nums[0]+sum] = 1 ; ans[0][(-1)*nums[0]+sum] = 1 ;
+
+        for (int i = 1 ; i < nums.size() ; i++){
+            for (int j = 0 ; j < 2*sum ; j++){
+                if (j-nums[i] < 0 && j+nums[i] < 2*sum+1) ans[i%2][j] = ans[(i-1)%2][j+nums[i]] ;
+                else if(j - nums[i] > 0 && j+nums[i] > 2*sum+1) ans[i%2][j] = ans[(i-1)%2][j-nums[i]] ;
+                else if(j-nums[i] > 0 && j+nums[i] < 2*sum+1) ans[i%2][j] = ans[(i-1)%2][j-nums[i]] + ans[(i-1)%2][j+nums[i]] ;
+            }
+        }
+        ans[(n-1)%2][sum+sum] = 1; ans[(n-1)%2][(-1)*sum+sum] = 1;
+        return ans[(n-1)%2][target+sum]*pow(2,count_0);
+    }
+};
