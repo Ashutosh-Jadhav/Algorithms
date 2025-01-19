@@ -1,4 +1,4 @@
-// Memoization (Bottom Up)
+// Memoization (Top Down)
 
 class Solution {
   public:
@@ -33,7 +33,7 @@ class Solution {
 };
 
 
-// tabulation with space optimized (Top Down)
+// tabulation with space optimized (Bottom Up)
 
 class Solution {
   public:

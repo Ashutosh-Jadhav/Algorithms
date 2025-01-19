@@ -1,4 +1,4 @@
-// memoization (bottom up)
+// memoization (Top Down)
 
 class Solution {
 public:
@@ -34,7 +34,7 @@ public:
 };
 
 
-// top down
+// Bottom Up
 
 class Solution {
 public:

@@ -1,4 +1,4 @@
-// top down with memory optimization
+// BottomUp with space optimization
 
 class Solution {
   public:

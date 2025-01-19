@@ -1,3 +1,5 @@
+// Bottom Up
+
 class Solution {
   public:
     int knapSack(vector<int>& val, vector<int>& wt, int capacity) {
