@@ -2,6 +2,6 @@
 using namespace std;
 int main()
 {
-    cout << "Hello World" << endl ;
+    cout << "Checking if i update repo" << endl ;
     return 0 ;
 }
