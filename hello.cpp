@@ -2,6 +2,6 @@
 using namespace std;
 int main()
 {
-    cout << "WebHook is fine" << endl ;
+    cout << "WebHook is fin" << endl ;
     return 0 ;
 }
