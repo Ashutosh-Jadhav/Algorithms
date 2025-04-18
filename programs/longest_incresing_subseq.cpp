@@ -73,3 +73,41 @@ class Solution {
             return ans[i][maxi] = f(i+1,maxi,nums,ans);
         }
     };
+
+
+// 2nd approach
+
+class Solution {
+    public:
+        int lengthOfLIS(vector<int>& nums) {
+            int n = nums.size();
+            int max = 0 , max1=0;
+            vector<vector<int>> ans(n,vector<int> (n,0));
+            for (int i = 0 ; i < n ; i++){
+                max = 1 ;
+                for (int j= 0 ; j < i+2 ; j++){
+                    if (j == i) ans[i][j] = 1 ;
+                    else if (j == i+1){
+                        if (i == n-1) break;
+                        ans[i][j] = max ;
+                    }
+                    else if (nums[i] > nums[j]) {
+                        ans[i][j] = 1 + ans[j][j+1];
+                        if (ans[i][j] > max) max = ans[i][j];
+                    }
+                    else ans[i][j] = ans[i-1][j];
+                    // if (ans[i][j] > max) max = ans[i][j];
+                    if (ans[i][j] > max1) max1 = ans[i][j];
+                }
+            }
+            // for (int i = 0 ; i < n ; i++){
+            //     for (int j= 0 ; j < n ; j++){
+            //         cout << ans[i][j] ;
+            //     }
+            //     cout << endl;
+            // }
+            return max1;
+        }
+    };
+
+
