@@ -17,7 +17,7 @@ class Solution {
             q.pop();
             for (int i = 0 ; i < adj[u].size() ;i++){
                 if (v[adj[u][i]] == 0) {
-                    v[adj[u][i]] = 1 ;
+                    v[adj[u][i]] = 1 ;                             // visited not yet explored
                     q.push(adj[u][i]);
                     bfs.push_back(adj[u][i]);
                 }
