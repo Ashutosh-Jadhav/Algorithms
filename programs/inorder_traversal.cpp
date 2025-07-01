@@ -12,3 +12,26 @@ public:
         return ans;
     }
 };
+
+
+
+// iterative
+
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        TreeNode* curr = root;
+        vector<int> ans;
+        stack<TreeNode*> s;
+        while (curr != nullptr || !s.empty()) {
+            while(curr != nullptr) {
+                s.push(curr);
+                curr = curr-> left;
+            }
+            curr = s.top(); s.pop();
+            ans.push_back(curr->val);
+            curr = curr->right;
+        }
+        return ans;
+    }
+};
