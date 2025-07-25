@@ -27,3 +27,7 @@ def sum_of_max_times_length(arr):
         total += arr[i] * count * (left + right - 1) // 2  # average length over all
 
     return total
+
+arr = [2,1,3,2,1]
+tot = sum_of_max_times_length(arr)
+print(tot)
