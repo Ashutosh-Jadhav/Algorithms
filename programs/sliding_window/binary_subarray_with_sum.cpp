@@ -39,3 +39,28 @@ public:
         return c;
     }
 };
+
+
+// using 2 pointer
+
+class Solution {
+public:
+    int at_most(vector<int>& nums , int goal) {
+        if (goal < 0) return 0;
+        int c,curr_sum,l; c= 0 ; curr_sum = 0; l = 0;
+        for (int r = 0 ; r < nums.size() ; r++) {
+            curr_sum = curr_sum + nums[r];
+            while (curr_sum > goal) {
+                curr_sum -= nums[l];
+                l++;
+            }
+            c += r-l+1;
+        }
+        return c;
+    }
+    int numSubarraysWithSum(vector<int>& nums, int goal) {
+        int n = nums.size(),c=0;
+        c = at_most(nums,goal) - at_most(nums,goal-1);
+        return c;
+    }
+};
