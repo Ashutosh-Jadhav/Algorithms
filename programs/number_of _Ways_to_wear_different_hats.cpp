@@ -31,3 +31,35 @@ public:
         return ways%m;
     }
 };
+
+// dp with bit mask
+
+class Solution {
+public:
+    const long long m = 1e9+7;
+    long long func(int hat, int mask , vector<vector<int>>& hats_to_people ,vector<vector<long long>>& dp,int n) {
+        if (mask == (1 << n) -1) return 1;
+        if (hat > 40) return 0;
+        if (dp[hat][mask] != -1) return dp[hat][mask];
+        long long ways;
+        ways = func(hat+1,mask,hats_to_people,dp,n)%m;
+        for (auto person : hats_to_people[hat]) {
+            if ((mask & (1 << person)) == 0) {
+                ways += func(hat+1,mask | (1 << person),hats_to_people,dp,n)%m;
+            }
+        }
+        return dp[hat][mask] = ways%m;
+    }
+    int numberWays(vector<vector<int>>& hats) {
+        int n; n = hats.size();
+        vector<vector<int>> hats_to_people(41);
+        vector<vector<long long>> dp(41,vector<long long>((1 << n),-1));
+        for (int i = 0 ; i < n ; i++) {
+            for (auto cap : hats[i]) {
+                hats_to_people[cap].push_back(i);
+            }
+        }
+        dp[1][0] = func(1,0,hats_to_people,dp,n)%m;
+        return dp[1][0]%m;
+    }
+};
