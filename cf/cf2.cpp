@@ -1,234 +1,165 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const int MAXV = 450;   // enough for n1 + n2 + 4
-const int INF  = (int)1e9;
-
+// Dinic's algorithm for Max Flow
 struct Edge {
-    int to, cap, flow, cost;
-    Edge() {}
-    Edge(int _to, int _cap, int _flow, int _cost)
-        : to(_to), cap(_cap), flow(_flow), cost(_cost) {}
+    int to;
+    long long cap;
+    int rev;
 };
 
-int n1, n2, m, rCost, bCost;
-string sL, sR;
-int U[205], Vv[205];
+struct Dinic {
+    int N;
+    vector<vector<Edge>> G;
+    vector<int> level;
+    vector<int> prog;
 
-vector<Edge> edges;
-vector<int> adj[MAXV];
+    Dinic(int n) : N(n), G(n), level(n), prog(n) {}
 
-int S, T;          // artificial source/sink for lower-bound model
-int oldS, oldT;    // original "super" nodes
-int numV;          // total number of vertices
-
-int bal[205][205]; // net flow per (left,right) pair
-
-// add directed edge u -> v with capacity cap and cost cost
-void addEdge(int u, int v, int cap, int cost) {
-    adj[u].push_back((int)edges.size());
-    edges.emplace_back(v, cap, 0, cost);
-    adj[v].push_back((int)edges.size());
-    edges.emplace_back(u, 0, 0, -cost);
-}
-
-inline int residual(int id) {
-    return edges[id].cap - edges[id].flow;
-}
-
-// add edge x->y with lower bound L and upper bound R, cost C
-// using standard trick with global S,T
-void addEdgeLR(int x, int y, int L, int R, int cost) {
-    int cap = R - L;
-    if (L > 0) {
-        // compensate lower bound
-        addEdge(S, y, L, cost);
-        addEdge(x, T, L, cost);
+    void add_edge(int fr, int to, long long cap) {
+        Edge fwd = {to, cap, (int)G[to].size()};
+        Edge rev = {fr, 0,   (int)G[fr].size()};
+        G[fr].push_back(fwd);
+        G[to].push_back(rev);
     }
-    if (cap > 0) {
-        addEdge(x, y, cap, cost);
-    }
-}
 
-// SPFA to find shortest augmenting path from S to T
-int parV[MAXV];  // previous vertex
-int parE[MAXV];  // which edge used to enter
-int distv[MAXV];
-bool inQ[MAXV];
-
-bool augment() {
-    for (int i = 0; i < numV; ++i) {
-        distv[i] = INF;
-        parV[i] = -1;
-        parE[i] = -1;
-        inQ[i] = false;
-    }
-    distv[S] = 0;
-    queue<int> q;
-    q.push(S);
-    inQ[S] = true;
-
-    while (!q.empty()) {
-        int v = q.front(); q.pop();
-        inQ[v] = false;
-        for (int id : adj[v]) {
-            if (!residual(id)) continue;
-            int to = edges[id].to;
-            int nd = distv[v] + edges[id].cost;
-            if (nd < distv[to]) {
-                distv[to] = nd;
-                parV[to] = v;
-                parE[to] = id;
-                if (!inQ[to]) {
-                    inQ[to] = true;
-                    q.push(to);
+    bool bfs(int s, int t) {
+        fill(level.begin(), level.end(), -1);
+        queue<int> q;
+        level[s] = 0;
+        q.push(s);
+        while (!q.empty()) {
+            int v = q.front(); q.pop();
+            for (auto &e : G[v]) {
+                if (e.cap > 0 && level[e.to] < 0) {
+                    level[e.to] = level[v] + 1;
+                    q.push(e.to);
                 }
             }
         }
+        return level[t] >= 0;
     }
-    if (parV[T] == -1) return false;
 
-    // push exactly 1 unit (all capacities are small, this is fine)
-    int cur = T;
-    while (cur != S) {
-        int eid = parE[cur];
-        edges[eid].flow++;
-        edges[eid ^ 1].flow--;
-        cur = parV[cur];
-    }
-    return true;
-}
-
-void addRBEdge(int left, int right) {
-    // left part: 0..n1-1
-    // right part: n1 .. n1+n2-1
-    int L = left;
-    int R = right + n1;
-    // choosing red: L -> R, cost rCost
-    addEdge(L, R, 1, rCost);
-    // choosing blue: R -> L, cost bCost
-    addEdge(R, L, 1, bCost);
-}
-
-void imposeLeft(int x) {
-    // vertex x in left part
-    if (sL[x] == 'R') {
-        // #red - #blue >= 1 -> flow constraint oldS -> x
-        addEdgeLR(oldS, x, 1, m, 0);
-    } else if (sL[x] == 'B') {
-        // #blue - #red >= 1 -> x -> oldT
-        addEdgeLR(x, oldT, 1, m, 0);
-    } else {
-        // uncolored: no restriction
-        addEdge(oldS, x, m, 0);
-        addEdge(x, oldT, m, 0);
-    }
-}
-
-void imposeRight(int x) {
-    // vertex x in right part, actual node index is x + n1
-    int node = x + n1;
-    if (sR[x] == 'R') {
-        // #red - #blue >= 1 for right vertex
-        addEdgeLR(node, oldT, 1, m, 0);
-    } else if (sR[x] == 'B') {
-        addEdgeLR(oldS, node, 1, m, 0);
-    } else {
-        // uncolored
-        addEdge(oldS, node, m, 0);
-        addEdge(node, oldT, m, 0);
-    }
-}
-
-void buildBal() {
-    memset(bal, 0, sizeof(bal));
-    for (int i = 0; i < n1; ++i) {
-        for (int id : adj[i]) {
-            int to = edges[id].to;
-            if (to >= n1 && to < n1 + n2) {
-                // edge between left i and right (to-n1)
-                bal[i][to - n1] += edges[id].flow;
+    long long dfs(int v, int t, long long f) {
+        if (!f || v == t) return f;
+        for (int &i = prog[v]; i < (int)G[v].size(); ++i) {
+            Edge &e = G[v][i];
+            if (e.cap > 0 && level[v] < level[e.to]) {
+                long long d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) {
+                    e.cap -= d;
+                    G[e.to][e.rev].cap += d;
+                    return d;
+                }
             }
         }
+        return 0;
     }
-}
 
-bool checkFeasibleAndPrint() {
-    // check that no edge out of S (the artificial source) has residual capacity
-    for (int id : adj[S]) {
-        if (residual(id)) {
-            cout << -1 << '\n';
-            return false;
+    long long max_flow(int s, int t) {
+        long long flow = 0, inf = (long long)1e18;
+        while (bfs(s, t)) {
+            fill(prog.begin(), prog.end(), 0);
+            long long f;
+            while ((f = dfs(s, t, inf)) > 0) {
+                flow += f;
+            }
         }
+        return flow;
     }
-
-    buildBal();
-
-    long long totalCost = 0;
-    string ans;
-    ans.reserve(m);
-
-    for (int i = 0; i < m; ++i) {
-        int a = U[i];
-        int b = Vv[i];
-        if (bal[a][b] > 0) {
-            // red chosen here
-            bal[a][b]--;
-            totalCost += rCost;
-            ans.push_back('R');
-        } else if (bal[a][b] < 0) {
-            // blue chosen here (flow from right->left)
-            bal[a][b]++;
-            totalCost += bCost;
-            ans.push_back('B');
-        } else {
-            ans.push_back('U');
-        }
-    }
-
-    cout << totalCost << '\n';
-    cout << ans << '\n';
-    return true;
-}
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    cin >> n1 >> n2 >> m >> rCost >> bCost;
-    cin >> sL >> sR;
+    int n, m;
+    cin >> n >> m;
+    vector<long long> a(n + 1);
+    for (int i = 1; i <= n; ++i) cin >> a[i];
 
-    for (int i = 0; i < m; ++i) {
-        cin >> U[i] >> Vv[i];
-        --U[i];
-        --Vv[i];
+    // Store edges as (odd_index, even_index)
+    vector<pair<int,int>> edges;
+    edges.reserve(m);
+    for (int k = 0; k < m; ++k) {
+        int x, y;
+        cin >> x >> y;
+        int odd = (x % 2 ? x : y);
+        int even = (x % 2 ? y : x);
+        edges.push_back({odd, even});
     }
 
-    // node indexing:
-    // left:  0 .. n1-1
-    // right: n1 .. n1+n2-1
-    oldS = n1 + n2;
-    oldT = oldS + 1;
-    S    = oldT + 1;
-    T    = S + 1;
-    numV = T + 1;
+    // prime -> vector of exponents per index (1..n)
+    // we will allocate vectors of size n+1 when first seen
+    unordered_map<long long, vector<int>> primeCnt;
 
-    // impose vertex constraints
-    for (int i = 0; i < n1; ++i) imposeLeft(i);
-    for (int i = 0; i < n2; ++i) imposeRight(i);
-
-    // add all original edges (choices for R/B)
-    for (int i = 0; i < m; ++i) {
-        addRBEdge(U[i], Vv[i]);
+    // Factorize each a[i]
+    for (int i = 1; i <= n; ++i) {
+        long long x = a[i];
+        for (long long p = 2; p * p <= x; ++p) {
+            if (x % p == 0) {
+                int cnt = 0;
+                while (x % p == 0) {
+                    x /= p;
+                    ++cnt;
+                }
+                if (!primeCnt.count(p)) {
+                    primeCnt[p] = vector<int>(n + 1, 0);
+                }
+                primeCnt[p][i] += cnt;
+            }
+        }
+        if (x > 1) { // x is prime
+            long long p = x;
+            if (!primeCnt.count(p)) {
+                primeCnt[p] = vector<int>(n + 1, 0);
+            }
+            primeCnt[p][i] += 1;
+        }
     }
 
-    // close circulation: edge oldT -> oldS with large capacity
-    addEdge(oldT, oldS, 100000, 0);
+    long long answer = 0;
+    const long long INF = (long long)1e9; // large enough
 
-    // run min-cost circulation by repeatedly augmenting from S to T
-    while (augment());
+    // For each distinct prime, build a flow network and compute max flow
+    for (auto &kv : primeCnt) {
+        // kv.first is the prime, kv.second is vector<int> exponents[1..n]
+        auto &cnt = kv.second;
 
-    // build answer / check feasibility
-    checkFeasibleAndPrint();
+        // Quick check: if all exponents are 0 or only one side has prime, skip
+        int totalExp = 0;
+        for (int i = 1; i <= n; ++i) totalExp += cnt[i];
+        if (totalExp <= 1) continue;
+
+        int S = 0;
+        int T = n + 1;
+        Dinic dinic(n + 2);
+
+        // Connect source to odd indices, even indices to sink
+        for (int i = 1; i <= n; ++i) {
+            if (cnt[i] == 0) continue;
+            if (i % 2 == 1) {
+                // odd index: S -> i
+                dinic.add_edge(S, i, cnt[i]);
+            } else {
+                // even index: i -> T
+                dinic.add_edge(i, T, cnt[i]);
+            }
+        }
+
+        // Edges between odd and even indices (good pairs), capacity INF
+        for (auto &e : edges) {
+            int odd = e.first;
+            int even = e.second;
+            // odd -> even
+            dinic.add_edge(odd, even, INF);
+        }
+
+        long long flow = dinic.max_flow(S, T);
+        answer += flow;
+    }
+
+    cout << answer << "\n";
+
     return 0;
 }
